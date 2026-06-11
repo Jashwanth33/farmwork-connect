@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  phone         String    @unique
+  name          String?
+  role          String    @default("FARMER")
+  email         String?
+  avatar        String?
+  language      String    @default("en")
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  farmerProfile       FarmerProfile?
+  workerProfile       WorkerProfile?
+  equipmentProfile    EquipmentProfile?
+  transportProfile    TransportProfile?
+  bookingsAsFarmer    Booking[]        @relation("FarmerBookings")
+  bookingsAsProvider  Booking[]        @relation("ProviderBookings")
+  reviewsGiven        Review[]         @relation("ReviewsGiven")
+  reviewsReceived     Review[]         @relation("ReviewsReceived")
+  notifications       Notification[]
+  transactions        Transaction[]
+}
+
+model FarmerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  farmSize        Float?
+  irrigationType  String?
+  emergencyContact String?
+  createdAt       DateTime @default(now())
+}
+
+model WorkerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  skills          String   @default("")
+  experience      Int      @default(0)
+  dailyWage       Float?
+  isAvailable     Boolean  @default(true)
+  serviceRadius   Float    @default(25)
+  createdAt       DateTime @default(now())
+}
+
+model EquipmentProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  equipmentType   String
+  equipmentName   String
+  modelNumber     String?
+  pricePerHour    Float
+  pricePerAcre    Float?
+  isAvailable     Boolean  @default(true)
+  serviceRadius   Float    @default(50)
+  createdAt       DateTime @default(now())
+}
+
+model TransportProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  vehicleType     String
+  vehicleNumber   String
+  capacity        Float
+  pricePerKm      Float
+  isAvailable     Boolean  @default(true)
+  serviceRadius   Float    @default(100)
+  createdAt       DateTime @default(now())
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  category        String
+  basePrice       Float
+  priceUnit       String   @default("acre")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  bookings        Booking[]
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  bookingNumber   String   @unique
+  farmerId        String
+  farmer          User     @relation("FarmerBookings", fields: [farmerId], references: [id])
+  providerId      String
+  provider        User     @relation("ProviderBookings", fields: [providerId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  cropType        String
+  farmAddress     String
+  farmLatitude    Float
+  farmLongitude  Float
+  farmSize        Float
+  scheduledDate   DateTime
+  scheduledTime  String
+  status          String   @default("PENDING")
+  urgency         String   @default("normal")
+  notes           String?
+  totalAmount     Float
+  advancePaid     Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  payment         Payment?
+  review          Review?
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  bookingId       String   @unique
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  amount          Float
+  method          String
+  status          String   @default("PENDING")
+  transactionId   String?
+  createdAt       DateTime @default(now())
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  type          String
+  amount        Float
+  description   String
+  referenceId   String?
+  status        String   @default("success")
+  createdAt     DateTime @default(now())
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  reviewerId  String
+  reviewer    User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId  String
+  reviewee    User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  otp       String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
